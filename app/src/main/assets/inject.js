@@ -96,6 +96,32 @@
     (document.body || document.documentElement).appendChild(b);
   }
 
+
+  /* ---- 清掉站点广告位 DOM（网络层已经拦了脚本，这里兜底） ---- */
+  function killAds() {
+    try {
+      if (!document.getElementById('__sg_css')) {
+        var st = document.createElement('style');
+        st.id = '__sg_css';
+        st.textContent = [
+          '[id*="smartpop"]', '[class*="smartpop"]',
+          'ins.adsbygoogle', '[id*="google_ads"]', '[class*="adsbygoogle"]',
+          '[id^="ad_"]', '[class^="ad_"]', '[class^="ad-"]',
+          '[class*="float-ad"]', '[id*="float-ad"]', '[class*="float_ad"]'
+        ].join(',') + '{display:none!important;visibility:hidden!important}';
+        (document.head || document.documentElement).appendChild(st);
+      }
+      var junk = document.querySelectorAll(
+        'iframe[src*="tscprts"],iframe[src*="whitetrafsa"],iframe[src*="smartpop"]');
+      for (var i = 0; i < junk.length; i++) { try { junk[i].remove(); } catch (e) {} }
+    } catch (e) {}
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', killAds);
+  else killAds();
+  setTimeout(killAds, 1200);
+  setTimeout(killAds, 3500);
+
   /* ---- 原生播放器退出后续播 ---- */
   window.__sgResume = function (url, posMs) {
     try {

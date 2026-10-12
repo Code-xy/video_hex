@@ -1,14 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg">
 
-    <WebView
-        android:id="@+id/web"
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipe"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:layout_marginBottom="54dp">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="4dp"
+            android:clipToPadding="false"
+            android:scrollbars="vertical" />
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <ProgressBar
         android:id="@+id/bar"
@@ -16,7 +25,27 @@
         android:layout_width="match_parent"
         android:layout_height="3dp"
         android:layout_gravity="top"
-        android:max="100"
-        android:progressTint="@color/accent"
+        android:indeterminate="true"
+        android:indeterminateTint="@color/accent"
         android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/bottombar"
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:layout_gravity="bottom"
+        android:background="@drawable/bottom_bar_bg"
+        android:orientation="horizontal">
+
+        <ImageButton android:id="@+id/nav_recommend" style="@style/BarBtn"
+            android:contentDescription="@string/sec_recommend" android:src="@drawable/ic_fire" />
+        <ImageButton android:id="@+id/nav_newest" style="@style/BarBtn"
+            android:contentDescription="@string/sec_newest" android:src="@drawable/ic_list" />
+        <ImageButton android:id="@+id/nav_rank" style="@style/BarBtn"
+            android:contentDescription="@string/sec_rank" android:src="@drawable/ic_star" />
+        <ImageButton android:id="@+id/nav_search" style="@style/BarBtn"
+            android:contentDescription="@string/sec_search" android:src="@drawable/ic_search" />
+        <ImageButton android:id="@+id/nav_web" style="@style/BarBtn"
+            android:contentDescription="@string/sec_web" android:src="@drawable/ic_globe" />
+    </LinearLayout>
 </FrameLayout>

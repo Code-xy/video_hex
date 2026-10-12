@@ -84,3 +84,67 @@ git branch -M main && git remote add origin <你的仓库> && git push -u origin
 - 不配 keystore secret 就用 debug 签名，能装，但不能覆盖安装正式签名的版本
 - 站点若改版换 CDN 域名，改 `MainActivity.kt` 里的 `cdnHosts` 即可
 - DRM / 加密私有协议不支持（这站没有，是裸 HLS）
+
+---
+
+# 方案 B（当前版本）：原生列表 + WebView 兜底
+
+已从 A（纯 WebView 壳）升级到 B。浏览和播放都是原生，WebView 只在必要时兜底。
+
+## 页面结构（全部实测，非推测）
+
+| 用途 | URL 模板 | 卡片/页 |
+|---|---|---|
+| 推荐 | `index-N.htm` | 48 |
+| 最新/全部 | `list-N.htm` | 24（深至 29239 页） |
+| 排行 | `top_list-N.htm` | 24 |
+| 7日榜 | `top7_list-N.htm` | 24 |
+| 5分钟 | `5min_list-N.htm` | 24 |
+| 长片 | `long_list-N.htm` | 24 |
+| 搜索 | `search.htm?search=X&sort=new` | 20 |
+| ~~热门~~ | `hot_list-N.htm` | **404，站点自己挂了** |
+
+## 卡片 DOM（Jsoup 选择器依据）
+
+```html
+<div class="thumbnail">
+  <a href="video-<id>.htm">
+    <div class="image"
+         style="background-image: url('https://i.hdcdn.store/thumb/<id>.webp')"
+         title="完整标题">
+      <div class="marker-overlays">
+        <var class="duration">28:24</var><span class="hd-thumbnail">HD</span>
+      </div>
+    </div>
+  </a>
+  <div class="caption title"><h5><a href="video-<id>.htm">标题</a></h5></div>
+  <div class="info"><p><a href="user.htm?author=xxx">作者</a><br/></p></div>
+</div>
+```
+
+## 解析器实测通过率
+
+10 个页面 × 全部字段 **零缺失**：标题 100%、缩略图 100%、时长 100%、作者 100%、HD 标记正常。
+
+## 架构
+
+```
+MainActivity（原生列表，方案 B 主入口）
+  ├─ OkHttp + Jsoup 解析 index-/list-/top_/top7_/5min_/long_/search
+  ├─ RecyclerView GridLayoutManager(2) + Coil 图片（实测 thumb 无需 Referer）
+  ├─ 滚动到底自动翻页；下拉刷新
+  ├─ 底栏：推荐 / 最新 / 排行 / 搜索 / 网页
+  ├─ 点击卡片 → 抓详情页 m3u8 → 直接进 GSY（不用过 WebView）
+  └─ 长按卡片 / 解析失败 → WebActivity 兜底
+WebActivity（WebView 兜底：登录态 / 异常页 / 主动要网页）
+VideoActivity（GSY 全屏，长按标题换线路，退出回传位置续播）
+```
+
+## 关键实测结论
+
+- `search.htm?...&sort=new` 的 **`&page=` 参数无效**，只有第一页 20 条 → 代码里搜索完直接置 `reachedEnd`
+- 缩略图 `i.hdcdn.store/thumb/<id>.webp` **无需 Referer**，Coil 直连 200 `image/webp`
+- m3u8 与 TS 分片**均无防盗链**，裸拉 200 / 206
+- m3u8 token **每次请求都变** → 必须实时抓详情页，禁止缓存
+- `shark-v6.hdcdn.store` 是纯 IPv6 线路，IPv4 网络下必失败 → 探活时自动跳过
+- HTML 属性选择器**必须带引号**（`a[href*='video-']`），否则严格 CSS 解析器报错

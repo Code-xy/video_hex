@@ -1,5 +1,17 @@
 <resources>
     <string name="app_name">HtvApp</string>
-    <!-- 起始地址，改成你要的站就行 -->
     <string name="start_url">https://hsex.tv/</string>
+
+    <string name="sec_recommend">推荐</string>
+    <string name="sec_newest">最新</string>
+    <string name="sec_rank">排行</string>
+    <string name="sec_search">搜索</string>
+    <string name="sec_web">网页</string>
+
+    <string name="search_hint">搜关键词</string>
+    <string name="pick_rank">选择榜单</string>
+    <string name="loading">加载中…</string>
+    <string name="no_more">没有更多了</string>
+    <string name="load_fail">加载失败，下拉重试</string>
+    <string name="parse_fail">解析不到播放地址，改用网页打开</string>
 </resources>
