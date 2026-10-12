@@ -45,7 +45,7 @@
             android:contentDescription="@string/sec_rank" android:src="@drawable/ic_star" />
         <ImageButton android:id="@+id/nav_search" style="@style/BarBtn"
             android:contentDescription="@string/sec_search" android:src="@drawable/ic_search" />
-        <ImageButton android:id="@+id/nav_web" style="@style/BarBtn"
-            android:contentDescription="@string/sec_web" android:src="@drawable/ic_globe" />
+        <ImageButton android:id="@+id/nav_mine" style="@style/BarBtn"
+            android:contentDescription="@string/sec_mine" android:src="@drawable/ic_person" />
     </LinearLayout>
 </FrameLayout>

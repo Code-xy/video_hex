@@ -14,6 +14,8 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.seagull.htv.data.Site
 import com.seagull.htv.data.Video
+import com.seagull.htv.ui.CardMenu
+import com.seagull.htv.ui.PlayerLauncher
 import com.seagull.htv.ui.VideoAdapter
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -33,16 +35,16 @@ class AuthorActivity : AppCompatActivity() {
     private var author: String = ""
     private var page: Int = 0
     private var reachedEnd: Boolean = false
-    private var opening: Boolean = false
+    private var lastVideo: Video? = null
     private val seen = HashSet<String>()
 
     private val playerResult =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
             val d = r.data ?: return@registerForActivityResult
             val id = d.getStringExtra(VideoActivity.RES_ID).orEmpty()
-            val t = d.getStringExtra(VideoActivity.RES_TITLE).orEmpty()
             val pos = d.getLongExtra(VideoActivity.RES_POS, 0L)
-            if (id.isNotEmpty() && pos > 3000) History.save(this, id, t, pos)
+            val v = lastVideo
+            if (v != null && id.isNotEmpty() && pos > 3000) History.save(this, v, pos)
         }
 
     companion object { const val EXTRA_AUTHOR = "author" }
@@ -61,7 +63,7 @@ class AuthorActivity : AppCompatActivity() {
 
         adapter = VideoAdapter(
             onClick = { openVideo(it) },
-            onLongClick = { openWeb(Site.BASE + "video-${it.id}.htm") },
+            onLongClick = { onCard(it) },
             onAuthorClick = { v -> if (v.author.isNotBlank() && v.author != author) openAuthor(v.author) }
         )
         list.layoutManager = GridLayoutManager(this, 2)
@@ -125,31 +127,20 @@ class AuthorActivity : AppCompatActivity() {
     }
 
     private fun openVideo(v: Video) {
-        if (opening) return
-        opening = true
-        bar.visibility = View.VISIBLE
-        pool.execute {
-            val url = try { Site.streamOf(v.id) } catch (e: Exception) { null }
-            runOnUiThread {
-                opening = false
-                bar.visibility = View.GONE
-                if (url.isNullOrBlank()) {
-                    tip(getString(R.string.parse_fail))
-                    openWeb(Site.BASE + "video-${v.id}.htm")
-                    return@runOnUiThread
-                }
-                val hist = History.pos(this, v.id)
-                val i = Intent(this, VideoActivity::class.java)
-                i.putExtra(VideoActivity.EXTRA_URL, url)
-                i.putStringArrayListExtra(VideoActivity.EXTRA_ALTS, ArrayList(Site.altLines(url)))
-                i.putExtra(VideoActivity.EXTRA_TITLE, v.title)
-                i.putExtra(VideoActivity.EXTRA_VIDEO_ID, v.id)
-                i.putExtra(VideoActivity.EXTRA_POS, if (hist > 5000) hist else 0L)
-                i.putExtra(VideoActivity.EXTRA_REFERER, Site.BASE + "video-${v.id}.htm")
-                playerResult.launch(i)
-            }
-        }
+        lastVideo = v
+        PlayerLauncher.open(this, v, playerResult, busy = ::setBusy, onFail = ::onPlayFail)
     }
+
+    private fun onCard(v: Video) {
+        CardMenu.show(this, v, onPlay = { openVideo(v) })
+    }
+
+    private fun onPlayFail(v: Video) {
+        tip(getString(R.string.parse_fail))
+        CardMenu.openWeb(this, v.id)
+    }
+
+    private fun setBusy(b: Boolean) { bar.visibility = if (b) View.VISIBLE else View.GONE }
 
     private fun openAuthor(name: String) {
         startActivity(Intent(this, AuthorActivity::class.java).putExtra(EXTRA_AUTHOR, name))

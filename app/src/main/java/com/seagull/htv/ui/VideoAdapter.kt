@@ -7,6 +7,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
+import com.seagull.htv.History
 import com.seagull.htv.R
 import com.seagull.htv.data.Video
 
@@ -39,6 +40,7 @@ class VideoAdapter(
         val dur: TextView = v.findViewById(R.id.dur)
         val hd: TextView = v.findViewById(R.id.hd)
         val meta: TextView = v.findViewById(R.id.meta)
+        val prog: View = v.findViewById(R.id.prog)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH =
@@ -62,6 +64,23 @@ class VideoAdapter(
         h.thumb.load(v.thumb) {
             crossfade(true)
             placeholder(R.drawable.ph_thumb)
+        }
+
+        // 看过的片子画一条绿色进度线（需要时长能解析出来）
+        val posMs = History.pos(h.itemView.context, v.id)
+        val durMs = History.durationMs(v.duration)
+        if (posMs > 3000 && durMs > 0) {
+            val frac = (posMs.toDouble() / durMs).coerceIn(0.0, 1.0)
+            h.prog.visibility = View.VISIBLE
+            h.prog.post {
+                val w = h.thumb.width
+                if (w > 0) {
+                    h.prog.layoutParams = h.prog.layoutParams.apply { width = (w * frac).toInt() }
+                    h.prog.requestLayout()
+                }
+            }
+        } else {
+            h.prog.visibility = View.GONE
         }
 
         h.itemView.setOnClickListener { onClick(v) }

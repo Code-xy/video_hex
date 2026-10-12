@@ -20,4 +20,23 @@
     <string name="loaded_n">已加载 %1$d 个</string>
     <string name="author_works">作者作品</string>
     <string name="btn_back">返回</string>
+
+    <string name="sec_mine">我的</string>
+    <string name="tab_history">播放历史</string>
+    <string name="tab_fav">我的收藏</string>
+    <string name="mn_play">播放</string>
+    <string name="mn_fav">收藏</string>
+    <string name="mn_unfav">取消收藏</string>
+    <string name="mn_remove_hist">从历史移除</string>
+    <string name="mn_web">用网页打开</string>
+    <string name="mn_copy">复制链接</string>
+    <string name="fav_added">已收藏</string>
+    <string name="fav_removed">已取消收藏</string>
+    <string name="copied">已复制</string>
+    <string name="clear_all">清空</string>
+    <string name="empty_history">还没有播放记录</string>
+    <string name="empty_fav">还没有收藏</string>
+    <string name="confirm_clear">确定清空？</string>
+    <string name="ok">确定</string>
+    <string name="cancel">取消</string>
 </resources>

@@ -29,6 +29,20 @@
             </intent-filter>
         </activity>
 
+        <!-- 我的：历史 + 收藏 -->
+        <activity
+            android:name=".MineActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout|uiMode|density" />
+
+        <!-- 崩溃现场 -->
+        <activity
+            android:name=".CrashActivity"
+            android:exported="false"
+            android:process=":crash"
+            android:excludeFromRecents="true"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout|uiMode|density" />
+
         <!-- 作者页 -->
         <activity
             android:name=".AuthorActivity"

@@ -30,6 +30,14 @@
             android:textColor="#FFFFFF"
             android:textSize="11sp" />
 
+        <View
+            android:id="@+id/prog"
+            android:layout_width="0dp"
+            android:layout_height="2dp"
+            android:layout_gravity="bottom"
+            android:background="#FF3DDC97"
+            android:visibility="gone" />
+
         <TextView
             android:id="@+id/hd"
             android:layout_width="wrap_content"
