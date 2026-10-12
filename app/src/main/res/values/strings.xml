@@ -39,4 +39,10 @@
     <string name="confirm_clear">确定清空？</string>
     <string name="ok">确定</string>
     <string name="cancel">取消</string>
+
+    <string name="crash_title">闪退了 —— 把下面内容复制发我</string>
+    <string name="crash_copy">复制全部</string>
+    <string name="crash_close">关闭</string>
+    <string name="crash_copied">已复制，粘贴发我即可</string>
+    <string name="crash_file">堆栈文件: %1$s</string>
 </resources>
