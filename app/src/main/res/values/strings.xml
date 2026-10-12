@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">HtvApp</string>
+    <!-- 起始地址，改成你要的站就行 -->
+    <string name="start_url">https://hsex.tv/</string>
+</resources>

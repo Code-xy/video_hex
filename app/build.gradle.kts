@@ -1,0 +1,75 @@
+plugins {
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+}
+
+// 有 keystore 就用正式的，没有就退回 debug 签名（照样能装）
+val ksPath: String = System.getenv("ANDROID_KEYSTORE_PATH").orEmpty()
+val hasKs: Boolean = ksPath.isNotEmpty() && file(ksPath).exists()
+
+android {
+    namespace = "com.seagull.htv"
+    compileSdk = 36
+
+    defaultConfig {
+        applicationId = "com.seagull.htv"
+        minSdk = 23
+        targetSdk = 35
+        versionCode = 1
+        versionName = "1.0.0"
+        vectorDrawables.useSupportLibrary = true
+    }
+
+    signingConfigs {
+        if (hasKs) {
+            create("rel") {
+                storeFile = file(ksPath)
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            isShrinkResources = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            signingConfig = if (hasKs) signingConfigs.getByName("rel")
+                            else signingConfigs.getByName("debug")
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions { jvmTarget = "17" }
+
+    buildFeatures { buildConfig = true }
+
+    packaging {
+        resources.excludes += setOf(
+            "META-INF/DEPENDENCIES",
+            "META-INF/LICENSE*",
+            "META-INF/NOTICE*",
+            "META-INF/*.kotlin_module"
+        )
+    }
+
+    lint { abortOnError = false }
+}
+
+dependencies {
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.activity:activity-ktx:1.9.3")
+    implementation("androidx.webkit:webkit:1.11.0")
+
+    // 实测 JitPack 坐标：14.0.0 存在，传递 exo2 -> androidx.media3 1.10.1
+    implementation("com.github.CarGuo.GSYVideoPlayer:gsyvideoplayer:14.0.0")
+}
