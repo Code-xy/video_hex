@@ -4,6 +4,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
+import java.net.URLDecoder
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
@@ -57,9 +58,33 @@ object Site {
 
     fun page(section: Section, page: Int): List<Video> = parseCards(fetch(section.urlOf(page)))
 
-    /** 实测：search 的 &page= 无效，只有第一页 20 条 */
-    fun search(q: String): List<Video> =
-        parseCards(fetch("search.htm?search=" + URLEncoder.encode(q, "UTF-8") + "&sort=new"))
+    /**
+     * 搜索。实测两条正交维度：
+     *  1) 路径式分页 search-N.htm 有效（N=1~300 都返回 20 条，页间不重合）；
+     *     而 query 参数形式的 &page= / &p= / &start= / &offset= 全部无效。
+     *  2) sort 与页码正交：p1+hot 与 p2+hot 结果重合 0 → 换 sort 等于换一批。
+     */
+    fun search(q: String, page: Int, sort: SortOrder): List<Video> {
+        val enc = URLEncoder.encode(q, "UTF-8")
+        val n = if (page < 1) 1 else page
+        val path = if (n == 1) "search.htm?search=$enc&sort=${sort.key}"
+                   else "search-$n.htm?search=$enc&sort=${sort.key}"
+        return parseCards(fetch(path))
+    }
+
+    /** 首页挂着的 30 个热搜词，实测可抓 */
+    fun hotWords(): List<String> {
+        val doc = fetch(BASE)
+        val out = LinkedHashSet<String>()
+        for (a in doc.select("a[href*='search.htm?search=']")) {
+            val m = Regex("search=([^&]+)").find(a.attr("href")) ?: continue
+            val w = try {
+                URLDecoder.decode(m.groupValues[1], "UTF-8")
+            } catch (e: Exception) { continue }
+            if (w.isNotBlank()) out.add(w)
+        }
+        return out.toList()
+    }
 
     fun parseCards(doc: Document): List<Video> {
         val out = ArrayList<Video>()
@@ -88,7 +113,8 @@ object Site {
         val doc = fetch("video-$id.htm")
         val direct = doc.selectFirst("source#video-source")?.attr("src").orEmpty()
         if (direct.isNotBlank()) return direct
-        val m = Regex("""<source[^>]+id="video-source"[^>]+src="([^"]+)"""").find(doc.html())
+        // 用普通转义字符串，不用三引号原始串：结尾连续 4 个引号在 Kotlin 里是有歧义的
+        val m = Regex("<source[^>]+id=\"video-source\"[^>]+src=\"([^\"]+)\"").find(doc.html())
         return m?.groupValues?.get(1)?.takeIf { it.isNotBlank() }
     }
 
@@ -105,5 +131,17 @@ object Site {
         } catch (e: Exception) {
         }
         return out
+    }
+
+    /**
+     * 实测只有 3 种真正不同的排序（两个关键词各跑一遍，结论一致）：
+     *   new / hot / view 三者互相重合 0 条；
+     *   而 like、comments、以及不传 sort 三者返回的结果**完全相同**，
+     *   是无效参数，所以不放进 UI —— 放了只会让用户以为排序坏了。
+     */
+    enum class SortOrder(val label: String, val key: String) {
+        NEW("最新", "new"),
+        HOT("最热", "hot"),
+        VIEW("最受欢迎", "view")
     }
 }

@@ -80,7 +80,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<ImageButton>(R.id.nav_recommend).setOnClickListener { switchSection(Section.RECOMMEND) }
         findViewById<ImageButton>(R.id.nav_newest).setOnClickListener { switchSection(Section.NEWEST) }
         findViewById<ImageButton>(R.id.nav_rank).setOnClickListener { pickRank() }
-        findViewById<ImageButton>(R.id.nav_search).setOnClickListener { askSearch() }
+        findViewById<ImageButton>(R.id.nav_search).setOnClickListener { openSearch() }
         findViewById<ImageButton>(R.id.nav_web).setOnClickListener { openWeb(Site.BASE) }
 
         reload()
@@ -105,25 +105,8 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun askSearch() {
-        val et = EditText(this)
-        et.hint = getString(R.string.search_hint)
-        et.inputType = InputType.TYPE_CLASS_TEXT
-        val wrap = FrameLayout(this)
-        wrap.setPadding(48, 24, 48, 8)
-        wrap.addView(et)
-        AlertDialog.Builder(this)
-            .setTitle(R.string.sec_search)
-            .setView(wrap)
-            .setPositiveButton("搜") { _, _ ->
-                keyword = et.text.toString().trim()
-                if (keyword.isEmpty()) return@setPositiveButton
-                reachedEnd = false
-                adapter.add(emptyList(), false)
-                fetchPage(1, false)
-            }
-            .setNegativeButton("取消", null)
-            .show()
+    private fun openSearch() {
+        startActivity(Intent(this, SearchActivity::class.java))
     }
 
     // ───── 加载 ─────

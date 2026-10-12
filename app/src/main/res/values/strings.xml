@@ -12,6 +12,9 @@
     <string name="pick_rank">选择榜单</string>
     <string name="loading">加载中…</string>
     <string name="no_more">没有更多了</string>
+    <string name="no_result">没有找到结果</string>
     <string name="load_fail">加载失败，下拉重试</string>
     <string name="parse_fail">解析不到播放地址，改用网页打开</string>
+    <string name="hist_and_hot">搜索历史 / 热搜词（点一下直接搜）</string>
+    <string name="search_title">搜索</string>
 </resources>
