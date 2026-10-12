@@ -58,11 +58,20 @@ jobs:
           fi
           echo "--- after ---" >> diag.log; ls "$SDK/platforms" >> diag.log 2>&1
 
-      - name: 还原签名 keystore（可选，没配 secret 就跳过）
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+      # 注意：不能在 if: 里用 secrets 上下文，GitHub 会直接判工作流非法。
+      # 改成 env 传值 + shell 判断。
+      - name: 还原签名 keystore（可选）
+        env:
+          KS_B64: ${{ secrets.KEYSTORE_BASE64 }}
+        shell: bash
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.jks"
-          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          if [ -n "$KS_B64" ]; then
+            printf '%s' "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+            echo "OK 已还原正式签名 keystore"
+          else
+            echo "未配置 KEYSTORE_BASE64 -> 用 debug 签名出包（可安装，不能覆盖正式签名版本）"
+          fi
 
       # 失败也要留下日志：pipefail + tee
       - name: 编译 release APK
