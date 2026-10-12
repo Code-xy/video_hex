@@ -5,6 +5,10 @@ on:
   push:
     branches: [ main, master ]
     tags: [ 'v*' ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'          # 纯文档/忽略规则改动不必出包
   workflow_dispatch:
     inputs:
       gradle_task:
