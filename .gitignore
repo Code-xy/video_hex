@@ -10,3 +10,6 @@
 *.jks
 *.keystore
 ks.b64
+
+# 本地推送脚本，不进仓库
+push.sh
