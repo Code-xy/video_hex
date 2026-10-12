@@ -3,9 +3,25 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-// 有 keystore 就用正式的，没有就退回 debug 签名（照样能装）
-val ksPath: String = System.getenv("ANDROID_KEYSTORE_PATH").orEmpty()
-val hasKs: Boolean = ksPath.isNotEmpty() && file(ksPath).exists()
+// ── 签名解析优先级 ────────────────────────────────────────────────
+//  1) CI secrets 提供的 keystore（环境变量 ANDROID_KEYSTORE_PATH）
+//  2) 仓库内置 signing/dev-release.jks —— 固定签名，保证每个包都能直接覆盖升级
+//  3) 都没有 → debug 签名（能装，但每次换签名、装不上旧版）
+//
+//  注意：仓库内置 keystore 的密码是公开的（见 DEV_STORE_PASS）。
+//  公开仓库里等于任何人都能用这个身份签名。侧载自用没问题；
+//  要真正保密就改用 secrets（方法 1），配好之后自动优先走它。
+val DEV_STORE_PASS = "htv-dev-2026"
+val DEV_ALIAS = "htv"
+
+val envKsPath: String = System.getenv("ANDROID_KEYSTORE_PATH").orEmpty()
+val repoKs = rootProject.file("signing/dev-release.jks")
+val useEnvKs: Boolean = envKsPath.isNotEmpty() && file(envKsPath).exists()
+val ksFile: java.io.File? = if (useEnvKs) file(envKsPath) else repoKs.takeIf { it.exists() }
+val ksStorePass: String = if (useEnvKs) System.getenv("ANDROID_KEYSTORE_PASSWORD").orEmpty() else DEV_STORE_PASS
+val ksAlias: String = if (useEnvKs) System.getenv("ANDROID_KEY_ALIAS").orEmpty().ifEmpty { DEV_ALIAS } else DEV_ALIAS
+val ksKeyPass: String = if (useEnvKs) System.getenv("ANDROID_KEY_PASSWORD").orEmpty().ifEmpty { ksStorePass } else DEV_STORE_PASS
+val hasKs: Boolean = ksFile != null && ksStorePass.isNotEmpty()
 
 // ── 允许 CI 用 -P 参数覆盖（配合 workflow_dispatch 手动构建）──
 //   -PvName=1.0.3       覆盖 versionName
@@ -49,10 +65,12 @@ android {
     signingConfigs {
         if (hasKs) {
             create("rel") {
-                storeFile = file(ksPath)
-                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
-                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+                storeFile = ksFile
+                storePassword = ksStorePass
+                keyAlias = ksAlias
+                keyPassword = ksKeyPass
+                val ext = ksFile!!.extension.lowercase()
+                if (ext == "p12" || ext == "pfx") storeType = "PKCS12"
             }
         }
     }

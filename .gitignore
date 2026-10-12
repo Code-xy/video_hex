@@ -8,6 +8,8 @@
 .externalNativeBuild
 .cxx
 *.jks
+# 例外：仓库内置的固定签名 keystore（要提交，保证签名稳定）
+!signing/dev-release.jks
 *.keystore
 ks.b64
 
