@@ -45,4 +45,12 @@
     <string name="crash_close">关闭</string>
     <string name="crash_copied">已复制，粘贴发我即可</string>
     <string name="crash_file">堆栈文件: %1$s</string>
+
+    <string name="mn_lines">切换线路</string>
+    <string name="mn_speed">播放倍速</string>
+    <string name="mn_more">更多</string>
+    <string name="gesture_hint">左半屏上下滑 = 亮度　·　右半屏上下滑 = 音量　·　双击 = 暂停/播放　·　长按标题 = 更多</string>
+    <string name="speed_now">倍速 %1$s</string>
+    <string name="line_now">已切到线路 %1$d/%2$d</string>
+    <string name="only_one_line">只有一条线路</string>
 </resources>

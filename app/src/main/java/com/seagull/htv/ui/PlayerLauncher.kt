@@ -35,6 +35,10 @@ object PlayerLauncher {
                     putExtra(VideoActivity.EXTRA_VIDEO_ID, v.id)
                     putExtra(VideoActivity.EXTRA_POS, if (hist > 5000) hist else 0L)
                     putExtra(VideoActivity.EXTRA_REFERER, Site.BASE + "video-${v.id}.htm")
+                    putExtra(VideoActivity.EXTRA_THUMB, v.thumb)
+                    putExtra(VideoActivity.EXTRA_DUR, v.duration)
+                    putExtra(VideoActivity.EXTRA_AUTHOR, v.author)
+                    putExtra(VideoActivity.EXTRA_HD, v.hd)
                 }
                 launcher.launch(i)
             }
