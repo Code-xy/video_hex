@@ -59,6 +59,14 @@ android {
             "META-INF/NOTICE*",
             "META-INF/*.kotlin_module"
         )
+        // gsyvideoplayer-ex_so 会塞进 IJK 播放器的 native 库（libijk*.so，四架构合计约 40MB），
+        // 但我们用的是 ExoPlayer(media3)，压根不加载 IJK —— 实测这些 .so 占了 APK 的 75%。
+        // 纯打包过滤，不动 classpath，零运行风险。
+        jniLibs.excludes += setOf(
+            "**/libijkffmpeg.so",
+            "**/libijkplayer.so",
+            "**/libijksdl.so"
+        )
     }
 
     lint { abortOnError = false }

@@ -91,9 +91,9 @@ class AuthorActivity : AppCompatActivity() {
         fetchNext()
     }
 
-    override fun onSaveInstanceState(out: Bundle) {
-        super.onSaveInstanceState(out)
-        out.putString(EXTRA_AUTHOR, author)
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(EXTRA_AUTHOR, author)
     }
 
     override fun onDestroy() { pool.shutdownNow(); super.onDestroy() }

@@ -96,7 +96,6 @@ class WebActivity : AppCompatActivity() {
         web.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
-            databaseEnabled = true
             mediaPlaybackRequiresUserGesture = false
             javaScriptCanOpenWindowsAutomatically = false
             setSupportMultipleWindows(false)
@@ -230,7 +229,7 @@ class WebActivity : AppCompatActivity() {
         return adDomains.any { l.contains(it) }
     }
 
-    override fun onSaveInstanceState(out: Bundle) { super.onSaveInstanceState(out); web.saveState(out) }
+    override fun onSaveInstanceState(outState: Bundle) { super.onSaveInstanceState(outState); web.saveState(out) }
     override fun onPause() { web.onPause(); super.onPause() }
     override fun onResume() { web.onResume(); super.onResume() }
     override fun onDestroy() { pool.shutdownNow(); super.onDestroy() }

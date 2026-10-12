@@ -102,10 +102,10 @@ class MainActivity : AppCompatActivity() {
         restoreOrReload()
     }
 
-    override fun onSaveInstanceState(out: Bundle) {
-        super.onSaveInstanceState(out)
-        out.putString(K_SECTION, section.name)
-        out.putString(K_KEYWORD, keyword)
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(K_SECTION, section.name)
+        outState.putString(K_KEYWORD, keyword)
     }
 
     override fun onPause() {
