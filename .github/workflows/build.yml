@@ -28,17 +28,35 @@ jobs:
           gradle-version: '8.13'
           cache-read-only: false
 
-      - name: 补齐 SDK 组件（GSY14 需要 android-36）
+      # 诊断信息统一进 diag.log，失败时也能一起上传
+      - name: 环境诊断
+        if: always()
         run: |
           SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
-          echo "SDK=$SDK"
+          {
+            echo "===== java =====";     java -version 2>&1
+            echo; echo "===== gradle =====";  gradle -v 2>&1
+            echo; echo "===== env =====";     env | grep -iE 'android|java|gradle|kotlin' | sort
+            echo; echo "===== SDK=$SDK ====="
+            echo "--- platforms ---";   ls "$SDK/platforms" 2>&1
+            echo "--- build-tools ---"; ls "$SDK/build-tools" 2>&1
+            echo "--- ndk ---";         ls "$SDK/ndk" 2>&1
+            echo "--- cmdline-tools ---"; ls "$SDK/cmdline-tools" 2>&1
+          } > diag.log 2>&1
+          echo "diag.log 已生成"
+
+      - name: 补齐 SDK 组件（GSY14 需要 android-36）
+        if: always()
+        run: |
+          SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
           SM="$SDK/cmdline-tools/latest/bin/sdkmanager"
           if [ -x "$SM" ]; then
             yes | "$SM" --licenses > /dev/null 2>&1 || true
-            "$SM" "platform-tools" "platforms;android-36" "build-tools;36.0.0" > /dev/null || true
+            "$SM" "platform-tools" "platforms;android-36" "build-tools;36.0.0" >> diag.log 2>&1 || true
           else
-            echo "sdkmanager 不在预期路径，交给 AGP 自动下载"
+            echo "sdkmanager 不在 $SM，交给 AGP 自动下载" >> diag.log
           fi
+          echo "--- after ---" >> diag.log; ls "$SDK/platforms" >> diag.log 2>&1
 
       - name: 还原签名 keystore（可选，没配 secret 就跳过）
         if: ${{ secrets.KEYSTORE_BASE64 != '' }}
@@ -46,14 +64,26 @@ jobs:
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.jks"
           echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
 
+      # 失败也要留下日志：pipefail + tee
       - name: 编译 release APK
-        env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: gradle assembleRelease --no-daemon --stacktrace
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log
+
+      - name: 上传构建日志
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            build.log
+            diag.log
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: 上传 APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: apk-${{ github.run_number }}
