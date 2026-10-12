@@ -229,7 +229,7 @@ class WebActivity : AppCompatActivity() {
         return adDomains.any { l.contains(it) }
     }
 
-    override fun onSaveInstanceState(outState: Bundle) { super.onSaveInstanceState(outState); web.saveState(out) }
+    override fun onSaveInstanceState(outState: Bundle) { super.onSaveInstanceState(outState); web.saveState(outState) }
     override fun onPause() { web.onPause(); super.onPause() }
     override fun onResume() { web.onResume(); super.onResume() }
     override fun onDestroy() { pool.shutdownNow(); super.onDestroy() }
