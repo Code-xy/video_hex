@@ -72,7 +72,7 @@ class VideoActivity : AppCompatActivity() {
         player.setUp(url, false, null, title)
         if (headers.isNotEmpty()) player.setMapHeadData(headers)
         player.startPlayLogic()
-        if (pos > 0) runCatching { player.seekTo(pos.toInt()) }
+        if (pos > 0) runCatching { player.seekTo(pos) }   // GSY14 的 seekTo 收 Long
     }
 
     private fun switchLine() {
