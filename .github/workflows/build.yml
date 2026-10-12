@@ -1,150 +1,49 @@
+# 本仓库的构建入口。真正的逻辑在 android-build.yml（可复用模板）。
 name: Build APK
 
 on:
   push:
     branches: [ main, master ]
     tags: [ 'v*' ]
-  workflow_dispatch:          # 网页上手动点按钮构建
+  workflow_dispatch:
+    inputs:
+      gradle_task:
+        description: '构建任务'
+        type: choice
+        default: assembleRelease
+        options: [assembleRelease, assembleDebug, bundleRelease]
+      split_abi:
+        description: '按 ABI 分包（体积更小，但每台机器只能装对应的那个包）'
+        type: boolean
+        default: false
+      abi_filters:
+        description: '限制 ABI，逗号分隔；留空=全部。例：arm64-v8a,armeabi-v7a'
+        type: string
+        default: ''
+      version_name:
+        description: '覆盖 versionName；留空=用 build.gradle 里的'
+        type: string
+        default: ''
+      version_code:
+        description: '覆盖 versionCode；留空=用 build.gradle 里的'
+        type: string
+        default: ''
+      release_on_tag:
+        description: '打 v* tag 时自动发 Release'
+        type: boolean
+        default: true
 
 permissions:
-  contents: write
+  contents: write          # 回推 ci-logs 分支需要
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 拉代码
-        uses: actions/checkout@v4
-
-      - name: 装 JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: zulu
-          java-version: '17'
-
-      - name: 装 Gradle 8.13
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.13'
-          cache-read-only: false
-
-      # ★ 固定 debug keystore：runner 默认每次新建，导致每次签名不同、无法覆盖安装。
-      # 缓存住之后首次生成、后续复用，签名从此一致，可以直接覆盖升级。
-      # （要走正式签名就配 KEYSTORE_BASE64 等 secrets，见下面那步）
-      - name: 恢复固定 debug keystore
-        uses: actions/cache@v4
-        with:
-          path: ~/.android/debug.keystore
-          key: android-debug-keystore-v1
-
-      # 诊断信息统一进 diag.log，失败时也能一起上传
-      - name: 环境诊断
-        if: always()
-        run: |
-          SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
-          {
-            echo "===== java =====";     java -version 2>&1
-            echo; echo "===== gradle =====";  gradle -v 2>&1
-            echo; echo "===== env =====";     env | grep -iE 'android|java|gradle|kotlin' | sort
-            echo; echo "===== SDK=$SDK ====="
-            echo "--- platforms ---";   ls "$SDK/platforms" 2>&1
-            echo "--- build-tools ---"; ls "$SDK/build-tools" 2>&1
-            echo "--- ndk ---";         ls "$SDK/ndk" 2>&1
-            echo "--- cmdline-tools ---"; ls "$SDK/cmdline-tools" 2>&1
-          } > diag.log 2>&1
-          echo "diag.log 已生成"
-
-      - name: 补齐 SDK 组件（GSY14 需要 android-36）
-        if: always()
-        run: |
-          SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
-          SM="$SDK/cmdline-tools/latest/bin/sdkmanager"
-          if [ -x "$SM" ]; then
-            yes | "$SM" --licenses > /dev/null 2>&1 || true
-            "$SM" "platform-tools" "platforms;android-36" "build-tools;36.0.0" >> diag.log 2>&1 || true
-          else
-            echo "sdkmanager 不在 $SM，交给 AGP 自动下载" >> diag.log
-          fi
-          echo "--- after ---" >> diag.log; ls "$SDK/platforms" >> diag.log 2>&1
-
-      # 注意：不能在 if: 里用 secrets 上下文，GitHub 会直接判工作流非法。
-      # 改成 env 传值 + shell 判断。
-      - name: 还原签名 keystore（可选）
-        env:
-          KS_B64: ${{ secrets.KEYSTORE_BASE64 }}
-        shell: bash
-        run: |
-          if [ -n "$KS_B64" ]; then
-            printf '%s' "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
-            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
-            echo "OK 已还原正式签名 keystore"
-          else
-            echo "未配置 KEYSTORE_BASE64 -> 用 debug 签名出包（可安装，不能覆盖正式签名版本）"
-          fi
-
-      # 失败也要留下日志：pipefail + tee
-      - name: 编译 release APK
-        shell: bash
-        run: |
-          set -o pipefail
-          gradle assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log
-
-      - name: 上传构建日志
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-logs
-          path: |
-            build.log
-            diag.log
-          if-no-files-found: warn
-          retention-days: 7
-
-      # 失败时把日志推到独立分支 ci-logs：不依赖 API、不受限流、随处可读
-      # 无论成败都回推：日志 + 状态 + （成功时）APK。
-      # 用独立分支 ci-logs + 强制推，永远只有一个提交，不撑大仓库。
-      - name: 回推日志与产物到 ci-logs 分支
-        if: always()
-        shell: bash
-        run: |
-          set +e
-          mkdir -p .ci
-          [ -f build.log ] && cp build.log .ci/ || echo "(无 build.log)" > .ci/build.log
-          [ -f diag.log ]  && cp diag.log  .ci/ || echo "(无 diag.log)"  > .ci/diag.log
-
-          APK=$(ls app/build/outputs/apk/release/*.apk 2>/dev/null | head -1)
-          if [ -n "$APK" ]; then
-            cp "$APK" .ci/app-release.apk
-            APK_INFO="$(basename "$APK")  $(stat -c%s "$APK") bytes  sha256=$(sha256sum "$APK" | cut -c1-32)"
-          else
-            APK_INFO="(无 APK)"
-          fi
-
-          {
-            echo "run_number=${{ github.run_number }}"
-            echo "head_sha=${{ github.sha }}"
-            echo "job_status=${{ job.status }}"
-            echo "apk=$APK_INFO"
-          } > .ci/meta.txt
-
-          git config user.name  "ci-bot"
-          git config user.email "ci-bot@users.noreply.github.com"
-          git add -f .ci
-          git commit -m "ci: run ${{ github.run_number }} [${{ job.status }}]" || echo "无可提交内容"
-          git push --force origin HEAD:refs/heads/ci-logs
-          echo "已回推 ci-logs"
-
-      - name: 上传 APK
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: apk-${{ github.run_number }}
-          path: app/build/outputs/apk/release/*.apk
-          if-no-files-found: error
-
-      - name: 打 tag 时发 Release（固定下载链接）
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: app/build/outputs/apk/release/*.apk
-          generate_release_notes: true
+    uses: ./.github/workflows/android-build.yml
+    secrets: inherit
+    with:
+      gradle-task:    ${{ inputs.gradle_task || 'assembleRelease' }}
+      split-abi:      ${{ inputs.split_abi == true && 'true' || 'false' }}
+      abi-filters:    ${{ inputs.abi_filters || '' }}
+      version-name:   ${{ inputs.version_name || '' }}
+      version-code:   ${{ inputs.version_code || '' }}
+      release-on-tag: ${{ inputs.release_on_tag == false && 'false' || 'true' }}

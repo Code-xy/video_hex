@@ -7,6 +7,16 @@ plugins {
 val ksPath: String = System.getenv("ANDROID_KEYSTORE_PATH").orEmpty()
 val hasKs: Boolean = ksPath.isNotEmpty() && file(ksPath).exists()
 
+// ── 允许 CI 用 -P 参数覆盖（配合 workflow_dispatch 手动构建）──
+//   -PvName=1.0.3       覆盖 versionName
+//   -PvCode=4           覆盖 versionCode
+//   -PabiFilters=arm64-v8a,armeabi-v7a   限制 ABI
+//   -PsplitAbi=true     按 ABI 分包（体积更小，但需按机型装对应包）
+val pVName: String? = (project.findProperty("vName") as String?)?.takeIf { it.isNotBlank() }
+val pVCode: String? = (project.findProperty("vCode") as String?)?.takeIf { it.isNotBlank() }
+val pAbi: String = (project.findProperty("abiFilters") as String?)?.trim().orEmpty()
+val pSplitAbi: Boolean = (project.findProperty("splitAbi") as String?)?.lowercase() == "true"
+
 android {
     namespace = "com.seagull.htv"
     compileSdk = 36
@@ -15,9 +25,25 @@ android {
         applicationId = "com.seagull.htv"
         minSdk = 23
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.0.2"
+        versionCode = pVCode?.toIntOrNull() ?: 3
+        versionName = pVName ?: "1.0.2"
         vectorDrawables.useSupportLibrary = true
+
+        if (pAbi.isNotEmpty()) {
+            ndk {
+                abiFilters.clear()
+                abiFilters.addAll(pAbi.split(",").map { it.trim() }.filter { it.isNotEmpty() })
+            }
+        }
+    }
+
+    splits {
+        abi {
+            isEnable = pSplitAbi
+            reset()
+            include("arm64-v8a", "armeabi-v7a")
+            isUniversalApk = false
+        }
     }
 
     signingConfigs {
