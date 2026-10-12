@@ -72,6 +72,28 @@ object Site {
         return parseCards(fetch(path))
     }
 
+    /**
+     * 作者作品列表。实测：user.htm?author=X 取第 1 页，
+     * 后续页同样是路径式 user-N.htm?author=X（20 卡/页，分页容器 ul.pagination1）。
+     * 注意参数名必须是 author：写成 ?u= 会被忽略并退化成"全部作品"。
+     */
+    fun byAuthor(author: String, page: Int): List<Video> {
+        val enc = URLEncoder.encode(author, "UTF-8")
+        val n = if (page < 1) 1 else page
+        val path = if (n == 1) "user.htm?author=$enc" else "user-$n.htm?author=$enc"
+        return parseCards(fetch(path))
+    }
+
+    /** 从分页容器里读最大页码，用来显示"共 N 页"（读不到就返回 0） */
+    fun lastPageOf(doc: org.jsoup.nodes.Document): Int {
+        var max = 0
+        for (a in doc.select("ul[class*=pagination] a")) {
+            val n = a.text().trim().toIntOrNull() ?: continue
+            if (n > max) max = n
+        }
+        return max
+    }
+
     /** 首页挂着的 30 个热搜词，实测可抓 */
     fun hotWords(): List<String> {
         val doc = fetch(BASE)
@@ -101,9 +123,11 @@ object Site {
             val title = a.text().trim().ifBlank { img?.attr("title").orEmpty().trim() }
             val dur = el.selectFirst("var.duration")?.text().orEmpty()
             val hd = el.selectFirst("span.hd-thumbnail") != null
-            val author = el.selectFirst("div.info p a[href*='user.htm']")?.text().orEmpty()
+            val authorEl = el.selectFirst("div.info p a[href*='user.htm']")
+            val author = authorEl?.text().orEmpty()
+            val authorUrl = authorEl?.attr("href").orEmpty()
 
-            out.add(Video(id, title, thumb, dur, hd, author))
+            out.add(Video(id, title, thumb, dur, hd, author, authorUrl))
         }
         return out
     }

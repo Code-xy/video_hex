@@ -12,7 +12,8 @@ import com.seagull.htv.data.Video
 
 class VideoAdapter(
     private val onClick: (Video) -> Unit,
-    private val onLongClick: (Video) -> Unit
+    private val onLongClick: (Video) -> Unit,
+    private val onAuthorClick: (Video) -> Unit = {}
 ) : RecyclerView.Adapter<VideoAdapter.VH>() {
 
     private val items = ArrayList<Video>()
@@ -30,6 +31,7 @@ class VideoAdapter(
     }
 
     fun size() = items.size
+    fun items(): List<Video> = ArrayList(items)
 
     class VH(v: View) : RecyclerView.ViewHolder(v) {
         val thumb: ImageView = v.findViewById(R.id.thumb)
@@ -50,8 +52,11 @@ class VideoAdapter(
         h.dur.text = v.duration
         h.dur.visibility = if (v.duration.isBlank()) View.GONE else View.VISIBLE
         h.hd.visibility = if (v.hd) View.VISIBLE else View.GONE
-        h.meta.text = v.author
-        h.meta.visibility = if (v.author.isBlank()) View.GONE else View.VISIBLE
+
+        val hasAuthor = v.author.isNotBlank()
+        h.meta.text = if (hasAuthor) "@" + v.author else ""
+        h.meta.visibility = if (hasAuthor) View.VISIBLE else View.GONE
+        h.meta.setOnClickListener { if (hasAuthor) onAuthorClick(v) }
 
         // Coil：缩略图无需 Referer，实测直连 200 image/webp
         h.thumb.load(v.thumb) {

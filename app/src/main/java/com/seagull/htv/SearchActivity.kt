@@ -81,7 +81,8 @@ class SearchActivity : AppCompatActivity() {
 
         videoAdapter = VideoAdapter(
             onClick = { openVideo(it) },
-            onLongClick = { openWeb(Site.BASE + "video-${it.id}.htm") }
+            onLongClick = { openWeb(Site.BASE + "video-${it.id}.htm") },
+            onAuthorClick = { v -> if (v.author.isNotBlank()) openAuthor(v.author) }
         )
         resultRv.layoutManager = GridLayoutManager(this, 2)
         resultRv.adapter = videoAdapter
@@ -250,6 +251,10 @@ class SearchActivity : AppCompatActivity() {
                 playerResult.launch(i)
             }
         }
+    }
+
+    private fun openAuthor(name: String) {
+        startActivity(Intent(this, AuthorActivity::class.java).putExtra(AuthorActivity.EXTRA_AUTHOR, name))
     }
 
     private fun openWeb(url: String) {

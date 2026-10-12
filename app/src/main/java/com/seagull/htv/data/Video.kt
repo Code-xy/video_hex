@@ -6,7 +6,8 @@ data class Video(
     val thumb: String,
     val duration: String,
     val hd: Boolean,
-    val author: String
+    val author: String,
+    val authorUrl: String = ""
 )
 
 /** 站点分区。实测所有 *_list-N.htm 都是 24 卡/页，index-N.htm 是 48 卡/页。 */

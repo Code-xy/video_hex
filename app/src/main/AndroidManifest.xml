@@ -29,6 +29,12 @@
             </intent-filter>
         </activity>
 
+        <!-- 作者页 -->
+        <activity
+            android:name=".AuthorActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout|uiMode|density" />
+
         <!-- 搜索页 -->
         <activity
             android:name=".SearchActivity"
