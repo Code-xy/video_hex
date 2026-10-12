@@ -28,6 +28,15 @@ jobs:
           gradle-version: '8.13'
           cache-read-only: false
 
+      # ★ 固定 debug keystore：runner 默认每次新建，导致每次签名不同、无法覆盖安装。
+      # 缓存住之后首次生成、后续复用，签名从此一致，可以直接覆盖升级。
+      # （要走正式签名就配 KEYSTORE_BASE64 等 secrets，见下面那步）
+      - name: 恢复固定 debug keystore
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: android-debug-keystore-v1
+
       # 诊断信息统一进 diag.log，失败时也能一起上传
       - name: 环境诊断
         if: always()
